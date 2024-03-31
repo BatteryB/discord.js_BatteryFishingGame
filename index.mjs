@@ -1,10 +1,9 @@
-import { Client, Embed, EmbedBuilder, GatewayIntentBits } from 'discord.js';
+import { Client, EmbedBuilder, GatewayIntentBits } from 'discord.js';
 import sqlite3 from 'sqlite3';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const db = new sqlite3.Database('Fish.db');
 
 const TOKEN = "TOKEN";
-
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -126,7 +125,7 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === "가격보기") {
-        await interaction.reply({content: '이곳에서 배터리낚시 아이템의 가격, 정보를 확인하세요!\nhttps://1drv.ms/x/s!AsoeI6xV8urJg9kblo5ngqBGK844NA?e=t1KQWR', ephemeral: true})
+        await interaction.reply({ content: '이곳에서 배터리낚시 아이템의 가격, 정보를 확인하세요!\nhttps://1drv.ms/x/s!AsoeI6xV8urJg9kblo5ngqBGK844NA?e=t1KQWR', ephemeral: true })
     }
 
     if (interaction.commandName === "가입하기") {
@@ -147,7 +146,7 @@ client.on('interactionCreate', async interaction => {
             let userInfo = await getUserInfo(interaction.user.id);
             let embedText = '닉네임: ' + interaction.user.globalName +
                 '\n낚싯대 레벨: ' + userInfo.fishingRod +
-                '\n돈: ' + userInfo.money.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '원\n============' +
+                '\n돈: ' + NumberConversion(userInfo.money) + '원\n============' +
                 '\n장갑 내구도: ' + userInfo.goves + '%' +
                 '\n곡괭이 내구도: ' + userInfo.pick + '%';
             let userEmbad = new EmbedBuilder()
@@ -172,16 +171,16 @@ client.on('interactionCreate', async interaction => {
             for (let i = 1; i < invenLen.length; i++) {
                 key = invenLen[i];
                 if (key == '실' || key == '철조각') {
-                    invenTxt += key + ": " + inven[key].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "개\n";
+                    invenTxt += key + ": " + NumberConversion(inven[key]) + "개\n";
                 } else if (inven[key] != 0) {
-                    invenTxt += key + ": " + inven[key].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "개\n";
+                    invenTxt += key + ": " + NumberConversion(inven[key]) + "개\n";
                 }
             }
             invenTxt += '============\n'
             for (let i = 1; i < fishLen.length; i++) {
                 key = fishLen[i];
                 if (fish[key] != 0) {
-                    invenTxt += key + ": " + fish[key].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "개\n";
+                    invenTxt += key + ": " + NumberConversion(fish[key]) + "개\n";
                 }
             }
             let invenEmbed = new EmbedBuilder()
@@ -262,10 +261,10 @@ client.on('interactionCreate', async interaction => {
                 let fishName = interaction.options.getString('물고기');
                 let userFish = await getFishName(interaction.user.id, fishName);
                 if (fishCount <= userFish[fishName]) {
-                    let fishPrice = fishArr.find(fish => fish.물고기 == fishName);
+                    let fishPrice = fishArr(fish => fish.물고기 == fishName);
                     await db.run(`UPDATE user SET money = money + ${fishPrice.가격 * fishCount} WHERE id = ?`, [interaction.user.id]);
                     await db.run(`UPDATE fish SET ${fishName} = ${fishName} - ${fishCount} WHERE id = ?`, [interaction.user.id]);
-                    await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${fishCount}개를 판매하였습니다.\n\n*-${fishName} ${fishCount}개\n+${fishPrice.가격 * fishCount}원*`);
+                    await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${NumberConversion(fishCount)}개를 판매하였습니다.\n\n*-${fishName} ${NumberConversion(fishCount)}개\n+${NumberConversion(fishPrice.가격 * fishCount)}원*`);
                 } else {
                     await interaction.reply({ content: '물고기의 갯수가 부족합니다.', ephemeral: true });
                 }
@@ -290,7 +289,7 @@ client.on('interactionCreate', async interaction => {
                         let shopMenu = fishArr.find(fish => fish.물고기 == fishName);
                         await db.run(`UPDATE user SET money = money + ${fishPrice.가격 * userFish[fishName]} WHERE id = ?`, [interaction.user.id]);
                         await db.run(`UPDATE fish SET ${fishName} = ${fishName} - ${userFish[fishName]} WHERE id = ?`, [interaction.user.id]);
-                        await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${userFish[fishName]}개를 판매하였습니다.\n\n*-${fishName} ${userFish[fishName]}개\n+${fishPrice.가격 * userFish[fishName]}원*`);
+                        await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${NumberConversion(userFish[fishName])}개를 판매하였습니다.\n\n*-${fishName} ${NumberConversion(userFish[fishName])}개\n+${NumberConversion(fishPrice.가격 * userFish[fishName])}원*`);
                     } else {
                         await interaction.reply({ content: '해당 물고기를 보유하고 있지 않습니다', ephemeral: true });
                     }
@@ -308,7 +307,7 @@ client.on('interactionCreate', async interaction => {
                         }
                     }
                     if (reven > 0) {
-                        await interaction.reply(`${interaction.user.globalName}님이 모든 물고기를 판매하였습니다.\n\n*+${reven}원*`)
+                        await interaction.reply(`${interaction.user.globalName}님이 모든 물고기를 판매하였습니다.\n\n*+${NumberConversion(reven)}원*`)
                     } else {
                         await interaction.reply({ content: '물고기가 없습니다.', ephemeral: true });
                     }
@@ -332,7 +331,7 @@ client.on('interactionCreate', async interaction => {
             if (userInfo.money >= (itemPrice.가격 * itemCount)) {
                 await db.run(`UPDATE item SET '${itemName}' = '${itemName}' + ${itemCount} WHERE id = ?`, [interaction.user.id]);
                 await db.run(`UPDATE user SET money = money - ${itemPrice.가격 * itemCount} WHERE id = ?`, [interaction.user.id]);
-                await interaction.reply(`${interaction.user.globalName}님이 ${itemName}을(를) 구매했습니다.\n\n*+${itemName} ${itemCount}개\n-${itemPrice.가격 * itemCount}원*`)
+                await interaction.reply(`${interaction.user.globalName}님이 ${itemName} ${NumberConversion(itemCount)}개를 구매했습니다.\n\n*+${itemName} ${NumberConversion(itemCount)}개\n-${NumberConversion(itemPrice.가격 * itemCount)}원*`)
             } else {
                 await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
             }
@@ -372,12 +371,33 @@ client.on('interactionCreate', async interaction => {
     if (interaction.commandName === "낚싯대강화") {
         let join = await joinCheck(interaction.user.id);
         if (join) {
-            await interaction.reply({ content: 'COMMING SOON', ephemeral: true });
+            let userInfo = await getUserInfo(interaction.user.id);
+            let userItem = await getAllItem(interaction.user.id);
+            let upgradeMaterial = fishingRodUpgrade.find(rod => rod.레벨 == userInfo.fishingRod);
+            if (upgradeMaterial != undefined) {
+                if (userInfo.money < upgradeMaterial.가격) {
+                    await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
+                } else if (userItem.실 < upgradeMaterial.실) {
+                    await interaction.reply({ content: '실이 부족합니다.', ephemeral: true });
+                } else if (userItem.철조각 < upgradeMaterial.철조각) {
+                    await interaction.reply({ content: '철조각이 부족합니다.', ephemeral: true });
+                } else {
+                    db.run(`UPDATE user SET money = money - ${upgradeMaterial.가격}, fishingRod = fishingRod + 1 WHERE id = ?`, [interaction.user.id]);
+                    db.run(`UPDATE item SET 실 = 실 - ${upgradeMaterial.실}, 철조각 = 철조각 - ${upgradeMaterial.철조각}`);
+                    await interaction.reply(`${interaction.user.globalName}님이 낚싯대를 업그레이드 했습니다!\n\n*실 -${NumberConversion(upgradeMaterial.실)}개\n철조각 -${NumberConversion(upgradeMaterial.철조각)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}\n낚싯대 레벨  ${userInfo.fishingRod} => ${userInfo.fishingRod + 1}*`);
+                }
+            } else {
+                await interaction.reply({ content: interaction.user.globalName + '님은 현재 "최고레벨" 입니다.', ephemeral: true });
+            }
         } else {
             await interaction.reply({ content: '먼저 가입을 해주세요.', ephemeral: true });
         }
     }
 });
+
+function NumberConversion(Num) {
+    return Num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
 function joinCheck(id) {
     return new Promise((resolve, reject) => {
