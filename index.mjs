@@ -244,7 +244,7 @@ client.on('interactionCreate', async interaction => {
                             db.run(`UPDATE item SET 실 = 실 + ${totlaItem} WHERE id = ?`, [interaction.user.id]);
                             db.run(`UPDATE user SET goves = goves - ${govesDamage} WHERE id = ?`, [interaction.user.id]);
                             interaction.editReply(`**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*실 +${totlaItem}\n장갑 내구도 -${govesDamage}%*`);
-                        }, 1000);
+                        }, gatheringTime);
                     } else {
                         gatheringTime.reply({ content: '장비의 내구도가 부족합니다.', ephemeral: true })
                     }
