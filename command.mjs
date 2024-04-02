@@ -266,6 +266,11 @@ const commands = [
             name: '곡괭이 수리키트',
             description: '곡괭이의 내구도를 100%로 수리합니다.',
             value: '곡괭이 수리키트'
+          },
+          {
+            name: '미끼',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
+            value: '미끼'
           }
         ]
       },
@@ -296,6 +301,11 @@ const commands = [
             name: '곡괭이 수리키트',
             description: '곡괭이의 내구도를 100%로 수리합니다.',
             value: '곡괭이 수리키트'
+          },
+          {
+            name: '미끼',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
+            value: '미끼'
           }
         ]
       }
