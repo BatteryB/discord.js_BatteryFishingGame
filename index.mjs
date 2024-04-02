@@ -86,6 +86,10 @@ const itemArr = [
     {
         상품명: '곡괭이 수리키트',
         가격: 30000
+    },
+    {
+        상품명: '미끼',
+        가격: 15000
     }
 ]
 
@@ -149,8 +153,9 @@ client.on('interactionCreate', async interaction => {
         let join = await joinCheck(interaction.user.id);
         if (!join) {
             await db.run("INSERT INTO user(id) VALUES(?);", [interaction.user.id]);
-            await db.run("INSERT INTO item(id) VALUES(?)", [interaction.user.id]);
             await db.run("INSERT INTO fish(id) VALUES(?)", [interaction.user.id]);
+            await db.run("INSERT INTO item(id) VALUES(?)", [interaction.user.id]);
+            await db.run("INSERT INTO ability(id) VALUES(?)", [interaction.user.id]);
             await interaction.reply({ content: "가입되었습니다.", ephemeral: true });
         } else {
             await interaction.reply({ content: '이미 가입하셨습니다.', ephemeral: true });
@@ -216,17 +221,29 @@ client.on('interactionCreate', async interaction => {
         if (join) {
             let work = interaction.options.getString('명령어');
             let userInfo = await getUserInfo(interaction.user.id);
+            let userAbility = await getUserAbility(interaction.user.id);
             if (userInfo.work == 0) {
                 if (work === '낚시') {       // ==================================낚시==================================
                     db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
                     let pickFish = String(fishArr[Math.floor(Math.random() * fishArr.length)].물고기);
+                    let catchingFish = 1;
                     let fishingTimeObj = fishingRodUpgrade.find(rodTime => rodTime.레벨 == userInfo.fishingRod);
                     let fishingTime = fishingTimeObj.소요시간;
                     await interaction.reply(interaction.user.globalName + '이(가) 낚싯대를 던졌다.\n물고기가 잡히길 기다리자...');
+                    let fishingReply = '**' + interaction.user.globalName + '이(가) ' + pickFish + '를 낚았다!**\n\n';
+                    if (userAbility.미끼 > 0) {
+                        catchingFish = 3;
+                        fishingReply += '미끼: 물고기 +2\n';
+                        db.run('UPDATE ability SET 미끼 = 미끼 - 1 WHERE id = ?', [interaction.user.id]);
+                    }
+                    fishingReply += '\n';
+                    if (userAbility.미끼 == 1) {
+                        fishingReply += '___미끼의 지속시간이 끝났습니다.___';
+                    }
                     setTimeout(() => {
                         db.run('UPDATE user SET work = 0 WHERE id = ?', [interaction.user.id]);
-                        db.run(`UPDATE fish SET ${pickFish} = ${pickFish} + 1 WHERE id = ?`, [interaction.user.id]);
-                        interaction.editReply('**' + interaction.user.globalName + '이(가) ' + pickFish + '를 낚았다!**');
+                        db.run(`UPDATE fish SET ${pickFish} = ${pickFish} + ${catchingFish} WHERE id = ?`, [interaction.user.id]);
+                        interaction.editReply(fishingReply);
                     }, fishingTime);
                 } else if (work === '채집') { // ==================================채집==================================
                     if (userInfo.goves > 0) {
@@ -375,6 +392,9 @@ client.on('interactionCreate', async interaction => {
                     } else if (activeItem == '곡괭이 수리키트') { // 곡괭이 수리
                         db.run('UPDATE user SET pick = 100 WHERE id = ?', [interaction.user.id]);
                         await interaction.reply(`${replyTxt}*곡괭이 내구도 100%*`);
+                    } else if (activeItem == '미끼') {           // 미끼
+                        db.run('UPDATE ability SET 미끼 = 10 WHERE id = ?', [interaction.user.id]);
+                        await interaction.reply(`${replyTxt}*낚시 활동 시 10회 동안 물고기를 3마리씩 낚습니다*`);
                     }
                 } else {
                     await interaction.reply({ content: '해당 아이템을 보유 하고있지 않습니다.', ephemeral: true });
@@ -482,6 +502,18 @@ function getUserItem(id, item) {
 function getAllItem(id) {
     return new Promise((resolve, reject) => {
         db.get("SELECT * FROM item WHERE id = ?", [id], (err, row) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(row);
+            }
+        });
+    });
+}
+
+function getUserAbility(id) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT * FROM ability WHERE id = ?", [id], (err, row) => {
             if (err) {
                 reject(err);
             } else {
