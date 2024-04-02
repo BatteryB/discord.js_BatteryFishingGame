@@ -134,9 +134,6 @@ const fishingRodUpgrade = [
     },
     {
         레벨: 7, // 현재 7레벨이 최고레벨
-        가격: 1500000,
-        실: 140,
-        철조각: 70,
         소요시간: 10000
     }
 ]
@@ -234,7 +231,7 @@ client.on('interactionCreate', async interaction => {
                 } else if (work === '채집') { // ==================================채집==================================
                     if (userInfo.goves > 0) {
                         db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
-                        let gatheringTime = Math.floor(Math.random() * 10000) + 10000; // 10~20초
+                        let gatheringTime = Math.floor(Math.random() * 10000) + 20000; // 30~40초
                         let totlaItem = Number(Math.floor(Math.random() * 5) + 1); // 1~5개
                         let govesDamage = Number(Math.floor(Math.random() * 4) + 7); // 7~10
                         userInfo.goves < govesDamage ? govesDamage = userInfo.goves : null;
@@ -246,7 +243,7 @@ client.on('interactionCreate', async interaction => {
                             interaction.editReply(`**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*실 +${totlaItem}\n장갑 내구도 -${govesDamage}%*`);
                         }, gatheringTime);
                     } else {
-                        gatheringTime.reply({ content: '장비의 내구도가 부족합니다.', ephemeral: true })
+                        interaction.reply({ content: '장비의 내구도가 부족합니다.', ephemeral: true })
                     }
                 } else if (work === '채광') { // ==================================채광==================================
                     if (userInfo.pick >= 0) {
@@ -283,7 +280,7 @@ client.on('interactionCreate', async interaction => {
                 let fishName = interaction.options.getString('물고기');
                 let userFish = await getFishName(interaction.user.id, fishName);
                 if (fishCount <= userFish[fishName]) {
-                    let fishPrice = fishArr(fish => fish.물고기 == fishName);
+                    let fishPrice = fishArr.find(fish => fish.물고기 == fishName);
                     await db.run(`UPDATE user SET money = money + ${fishPrice.가격 * fishCount} WHERE id = ?`, [interaction.user.id]);
                     await db.run(`UPDATE fish SET ${fishName} = ${fishName} - ${fishCount} WHERE id = ?`, [interaction.user.id]);
                     await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${NumberConversion(fishCount)}개를 판매하였습니다.\n\n*-${fishName} ${NumberConversion(fishCount)}개\n+${NumberConversion(fishPrice.가격 * fishCount)}원*`);
@@ -308,7 +305,7 @@ client.on('interactionCreate', async interaction => {
                 if (fishName != '전체판매') {
                     userFish = await getFishName(interaction.user.id, fishName);
                     if (userFish[fishName] > 0) {
-                        let shopMenu = fishArr.find(fish => fish.물고기 == fishName);
+                        let fishPrice = fishArr.find(fish => fish.물고기 == fishName);
                         await db.run(`UPDATE user SET money = money + ${fishPrice.가격 * userFish[fishName]} WHERE id = ?`, [interaction.user.id]);
                         await db.run(`UPDATE fish SET ${fishName} = ${fishName} - ${userFish[fishName]} WHERE id = ?`, [interaction.user.id]);
                         await interaction.reply(`${interaction.user.globalName}님이 ${fishName} ${NumberConversion(userFish[fishName])}개를 판매하였습니다.\n\n*-${fishName} ${NumberConversion(userFish[fishName])}개\n+${NumberConversion(fishPrice.가격 * userFish[fishName])}원*`);
