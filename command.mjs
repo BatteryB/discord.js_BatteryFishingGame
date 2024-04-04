@@ -1,7 +1,6 @@
 import { REST, Routes } from 'discord.js';
-const CLIENT_ID = "CLIENT_ID";
-const TOKEN = "TOKEN";
-
+const CLIENT_ID = CLIWENT_ID;
+const TOKEN = TOKEN;
 const commands = [
   {
     name: '가격보기',
@@ -269,8 +268,18 @@ const commands = [
           },
           {
             name: '미끼',
-            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 1마리 더 낚습니다',
             value: '미끼'
+          },
+          {
+            name: '고급미끼',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚고, 낚시 소요시간이 5초 단축됩니다.',
+            value: '고급미끼'
+          },
+          {
+            name: '목장갑',
+            description: '채집이면 자원을 5개, 채광이면 3개씩 더 얻습니다.',
+            value: '목장갑'
           }
         ]
       },
@@ -304,8 +313,18 @@ const commands = [
           },
           {
             name: '미끼',
-            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 1마리 더 낚습니다',
             value: '미끼'
+          },
+          {
+            name: '고급미끼',
+            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚고, 낚시 소요시간이 5초 단축됩니다.',
+            value: '고급미끼'
+          },
+          {
+            name: '목장갑',
+            description: '채집이면 자원을 5개, 채광이면 3개씩 더 얻습니다.',
+            value: '목장갑'
           }
         ]
       }
@@ -314,6 +333,18 @@ const commands = [
   {
     name: '낚싯대강화',
     description: '낚싯대를 강화합니다.'
+  },
+  {
+    name: '낚싯바늘강화',
+    description: '낚싯바늘를 강화합니다.'
+  },
+  {
+    name: '장갑강화',
+    description: '장갑을 강화합니다.'
+  },
+  {
+    name: '곡괭이강화',
+    description: '곡괭이를 강화합니다.'
   }
 ];
 
