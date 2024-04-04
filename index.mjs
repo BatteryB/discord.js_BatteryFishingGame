@@ -3,8 +3,7 @@ import sqlite3 from 'sqlite3';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const db = new sqlite3.Database('Fish.db');
 
-const TOKEN = "TOKEN";
-
+const TOKEN = TOKEN;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -73,7 +72,7 @@ const fishArr = [
     },
     {
         물고기: "청새치",
-        가격: 6000
+        가격: 4000
     }
 ]
 
@@ -89,7 +88,21 @@ const itemArr = [
     },
     {
         상품명: '미끼',
-        가격: 15000
+        가격: 25000,
+        지속시간: 10,
+        설명: '*낚시 활동 시 10회 동안 물고기를 추가로 1마리씩 더 낚습니다*'
+    },
+    {
+        상품명: '고급미끼',
+        가격: 35000,
+        지속시간: 10,
+        설명: '*낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚고, 낚시 소요시간이 5초 단축됩니다.*'
+    },
+    {
+        상품명: '목장갑',
+        가격: 35000,
+        지속시간: 8,
+        설명: '*8회동안 채집이면 자원을 3개, 채광이면 2개씩 더 얻습니다.*'
     }
 ]
 
@@ -137,12 +150,95 @@ const fishingRodUpgrade = [
         소요시간: 15000
     },
     {
-        레벨: 7, // 현재 7레벨이 최고레벨
+        레벨: 7, // 최고레벨
         소요시간: 10000
     }
 ]
 
+const fishingHookUpgrade = [
+    {
+        레벨: 1,
+        가격: 500000,
+        철조각: 50,
+        물고기갯수: 1
+    },
+    {
+        레벨: 2,
+        가격: 1000000,
+        철조각: 100,
+        물고기갯수: 2
+    },
+    {
+        레벨: 3,
+        가격: 1500000,
+        철조각: 150,
+        물고기갯수: 3
+    },
+    {
+        레벨: 4,
+        가격: 2000000,
+        철조각: 200,
+        물고기갯수: 4
+    },
+    {
+        레벨: 5, // 최고레벨
+        물고기갯수: 5
+    },
+]
+
+let govesUpgrade = [
+    {
+        레벨: 1,
+        가격: 250000,
+        실: 300,
+        감소시간: 0
+    },
+    {
+        레벨: 2,
+        가격: 500000,
+        실: 600,
+        감소시간: 10000
+    },
+    {
+        레벨: 3,
+        가격: 750000,
+        실: 900,
+        감소시간: 20000
+    },
+    {
+        레벨: 4, // 최고레벨
+        감소시간: 30000
+    }
+];
+
+let pickUpgrade = [
+    {
+        레벨: 1,
+        가격: 300000,
+        철조각: 250,
+        감소시간: 0
+    },
+    {
+        레벨: 2,
+        가격: 600000,
+        철조각: 500,
+        감소시간: 10000
+    },
+    {
+        레벨: 3,
+        가격: 900000,
+        철조각: 750,
+        감소시간: 20000
+    },
+    {
+        레벨: 4, // 최고레벨
+        감소시간: 30000
+    },
+]
+
 client.on('interactionCreate', async interaction => {
+    const developer = interaction.client.users.cache.get(developerId);
+
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === "가격보기") {
@@ -166,11 +262,28 @@ client.on('interactionCreate', async interaction => {
         let join = await joinCheck(interaction.user.id);
         if (join) {
             let userInfo = await getUserInfo(interaction.user.id);
+            let userAbility = await getUserAbility(interaction.user.id);
+            let abilityKey = Object.keys(userAbility);
             let embedText = '닉네임: ' + interaction.user.globalName +
                 '\n낚싯대 레벨: ' + userInfo.fishingRod +
-                '\n돈: ' + NumberConversion(userInfo.money) + '원\n============' +
+                '\n낚싯바늘 레벨: ' + userInfo.fishingHook +
+                '\n돈: ' + NumberConversion(userInfo.money) + '원\n\n== 도구 정보 ==\n' +
+                '\n장갑 레벨: ' + userInfo.govesLevel +
+                '\n곡괭이 레벨: ' + userInfo.pickLevel + '\n' + 
                 '\n장갑 내구도: ' + userInfo.goves + '%' +
                 '\n곡괭이 내구도: ' + userInfo.pick + '%';
+            let key, isAbilityTxt = false;
+            for (let i = 1; i <= abilityKey.length; i++) {
+                key = abilityKey[i]
+                if (userAbility[key] > 0) {
+                    if (!isAbilityTxt) {
+                        embedText += '\n\n== 남은 아이템 능력 횟수 ==\n';
+                        isAbilityTxt = true;
+                    }
+                    embedText += '\n' + key + ': ' + userAbility[key] + '회';
+                }
+            }
+
             let userEmbad = new EmbedBuilder()
                 .setTitle("낚시장")
                 .setDescription(embedText)
@@ -226,55 +339,87 @@ client.on('interactionCreate', async interaction => {
                 if (work === '낚시') {       // ==================================낚시==================================
                     db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
                     let pickFish = String(fishArr[Math.floor(Math.random() * fishArr.length)].물고기);
-                    let catchingFish = 1;
                     let fishingTimeObj = fishingRodUpgrade.find(rodTime => rodTime.레벨 == userInfo.fishingRod);
+                    let catchingFishObj = fishingHookUpgrade.find(catchingCount => catchingCount.레벨 == userInfo.fishingHook);
                     let fishingTime = fishingTimeObj.소요시간;
-                    await interaction.reply(interaction.user.globalName + '이(가) 낚싯대를 던졌다.\n물고기가 잡히길 기다리자...');
-                    let fishingReply = '**' + interaction.user.globalName + '이(가) ' + pickFish + '를 낚았다!**\n\n';
+                    let catchingFish = catchingFishObj.물고기갯수;
+                    let fishingReply = interaction.user.globalName + '이(가) 낚싯대를 던졌다.\n물고기가 잡히길 기다리자...\n\n'
+                    let fishingEditReply = '**' + interaction.user.globalName + '이(가) ' + pickFish + '를 낚았다!**\n\n';
                     if (userAbility.미끼 > 0) {
-                        catchingFish = 3;
-                        fishingReply += '미끼: 물고기 +2\n';
+                        catchingFish += 1;
+                        fishingEditReply += `미끼: ${pickFish} +1\n`;
                         db.run('UPDATE ability SET 미끼 = 미끼 - 1 WHERE id = ?', [interaction.user.id]);
                     }
-                    fishingReply += '\n';
-                    if (userAbility.미끼 == 1) {
-                        fishingReply += '___미끼의 지속시간이 끝났습니다.___';
+                    if (userAbility.고급미끼 > 0) {
+                        catchingFish += 2;
+                        fishingTime -= 5000;
+                        fishingReply += '고급미끼: 소요 시간 -5초'
+                        fishingEditReply += `고급미끼: ${pickFish} +2\n`;
+                        db.run('UPDATE ability SET 고급미끼 = 고급미끼 - 1 WHERE id = ?', [interaction.user.id]);
                     }
+                    fishingEditReply += '\n';
+                    if (userAbility.미끼 == 1) {
+                        fishingEditReply += '___미끼의 지속시간이 끝났습니다.___\n';
+                    }
+                    if (userAbility.고급미끼 == 1) {
+                        fishingEditReply += '___고급미끼의 지속시간이 끝났습니다.___\n';
+                    }
+                    await interaction.reply(fishingReply);
                     setTimeout(() => {
                         db.run('UPDATE user SET work = 0 WHERE id = ?', [interaction.user.id]);
                         db.run(`UPDATE fish SET ${pickFish} = ${pickFish} + ${catchingFish} WHERE id = ?`, [interaction.user.id]);
-                        interaction.editReply(fishingReply);
+                        interaction.editReply(fishingEditReply);
                     }, fishingTime);
                 } else if (work === '채집') { // ==================================채집==================================
                     if (userInfo.goves > 0) {
                         db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
-                        let gatheringTime = Math.floor(Math.random() * 10000) + 20000; // 30~40초
+                        let gatheringTime = (Math.floor(Math.random() * 10000) + 50000 - govesUpgrade[userInfo.govesLevel].감소시간); // 40~50초
                         let totlaItem = Number(Math.floor(Math.random() * 5) + 1); // 1~5개
                         let govesDamage = Number(Math.floor(Math.random() * 4) + 7); // 7~10
                         userInfo.goves < govesDamage ? govesDamage = userInfo.goves : null;
                         await interaction.reply(interaction.user.globalName + '은(는) 자원을 채집하기 위해 여정을 떠났다...');
+                        let gatheringEditReply = `**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*실 +${totlaItem}\n장갑 내구도 -${govesDamage}%*\n\n`;
+                        if (userAbility.목장갑 > 0) {
+                            totlaItem += 3;
+                            gatheringEditReply += '목장갑: 실 +3\n'
+                        }
+
+                        gatheringEditReply += '\n'
+                        if (userAbility.목장갑 == 1) {
+                            gatheringEditReply += '___목장갑의 지속시간이 끝났습니다.___\n';
+                        }
                         setTimeout(() => {
                             db.run('UPDATE user SET work = 0 WHERE id = ?', [interaction.user.id]);
                             db.run(`UPDATE item SET 실 = 실 + ${totlaItem} WHERE id = ?`, [interaction.user.id]);
                             db.run(`UPDATE user SET goves = goves - ${govesDamage} WHERE id = ?`, [interaction.user.id]);
-                            interaction.editReply(`**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*실 +${totlaItem}\n장갑 내구도 -${govesDamage}%*`);
+                            interaction.editReply(gatheringEditReply);
                         }, gatheringTime);
                     } else {
                         interaction.reply({ content: '장비의 내구도가 부족합니다.', ephemeral: true })
                     }
                 } else if (work === '채광') { // ==================================채광==================================
-                    if (userInfo.pick >= 0) {
+                    if (userInfo.pick > 0) {
                         db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
-                        let miningTime = Math.floor(Math.random() * 10000) + 30000; // 30~40초
+                        let miningTime = (Math.floor(Math.random() * 10000) + 60000 - pickUpgrade[userInfo.pickLevel].감소시간); // 50~60초
                         let totlaItem = Number(Math.floor(Math.random() * 3) + 1); // 1~3개
                         let PickDamage = Number(Math.floor(Math.random() * 3) + 3); // 3~5
                         userInfo.pick < PickDamage ? PickDamage = userInfo.pick : null;
                         await interaction.reply(interaction.user.globalName + '은(는) 자원을 채광하기 위해 여정을 떠났다...');
+                        let miningEditReply = `**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*철조각 +${totlaItem}\n곡괭이 내구도 -${PickDamage}%*\n\n`;
+                        if (userAbility.목장갑 > 0) {
+                            totlaItem += 2;
+                            miningEditReply += '목장갑: 철조각 +2\n'
+                        }
+
+                        miningEditReply += '\n'
+                        if (userAbility.목장갑 == 1) {
+                            miningEditReply += '___목장갑의 지속시간이 끝났습니다.___\n';
+                        }
                         setTimeout(() => {
                             db.run('UPDATE user SET work = 0 WHERE id = ?', [interaction.user.id]);
                             db.run(`UPDATE item SET 철조각 = 철조각 + ${totlaItem} WHERE id = ?`, [interaction.user.id]);
                             db.run(`UPDATE user SET pick = pick - ${PickDamage} WHERE id = ?`, [interaction.user.id]);
-                            interaction.editReply(`**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*철조각 +${totlaItem}\n곡괭이 내구도 -${PickDamage}%*`)
+                            interaction.editReply(miningEditReply);
                         }, miningTime);
                     } else {
                         interaction.reply({ content: '장비의 내구도가 부족합니다.', ephemeral: true })
@@ -392,9 +537,10 @@ client.on('interactionCreate', async interaction => {
                     } else if (activeItem == '곡괭이 수리키트') { // 곡괭이 수리
                         db.run('UPDATE user SET pick = 100 WHERE id = ?', [interaction.user.id]);
                         await interaction.reply(`${replyTxt}*곡괭이 내구도 100%*`);
-                    } else if (activeItem == '미끼') {           // 미끼
-                        db.run('UPDATE ability SET 미끼 = 10 WHERE id = ?', [interaction.user.id]);
-                        await interaction.reply(`${replyTxt}*낚시 활동 시 10회 동안 물고기를 3마리씩 낚습니다*`);
+                    } else {
+                        let itemObj = itemArr.find(item => item.상품명 == activeItem);
+                        db.run(`UPDATE ability SET ${activeItem} = ${itemObj.지속시간} WHERE id = ?`, [interaction.user.id]);
+                        await interaction.reply(`${replyTxt}${itemObj.설명}`);
                     }
                 } else {
                     await interaction.reply({ content: '해당 아이템을 보유 하고있지 않습니다.', ephemeral: true });
@@ -423,11 +569,88 @@ client.on('interactionCreate', async interaction => {
                     await interaction.reply({ content: '철조각이 부족합니다.', ephemeral: true });
                 } else {
                     db.run(`UPDATE user SET money = money - ${upgradeMaterial.가격}, fishingRod = fishingRod + 1 WHERE id = ?`, [interaction.user.id]);
-                    db.run(`UPDATE item SET 실 = 실 - ${upgradeMaterial.실}, 철조각 = 철조각 - ${upgradeMaterial.철조각}`);
-                    await interaction.reply(`${interaction.user.globalName}님이 낚싯대를 업그레이드 했습니다!\n**낚싯대 레벨  ${userInfo.fishingRod} => ${userInfo.fishingRod + 1}\n낚시 소요시간 -5초**\n\n*실 -${NumberConversion(upgradeMaterial.실)}개\n철조각 -${NumberConversion(upgradeMaterial.철조각)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}*`);
+                    db.run(`UPDATE item SET 실 = 실 - ${upgradeMaterial.실}, 철조각 = 철조각 - ${upgradeMaterial.철조각} WHERE id = ?`, [interaction.user.id]);
+                    await interaction.reply(`${interaction.user.globalName}님이 낚싯대를 업그레이드 했습니다!\n**낚싯대 레벨  ${userInfo.fishingRod} => ${Number(userInfo.fishingRod) + 1}\n낚시 소요시간 -5초**\n\n*실 -${NumberConversion(upgradeMaterial.실)}개\n철조각 -${NumberConversion(upgradeMaterial.철조각)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}*`);
                 }
             } else {
-                await interaction.reply({ content: interaction.user.globalName + '님은 현재 "최고레벨" 입니다.', ephemeral: true });
+                await interaction.reply({ content: interaction.user.globalName + '님은 낚싯대는 현재 "최고레벨" 입니다.', ephemeral: true });
+            }
+        } else {
+            await interaction.reply({ content: '먼저 가입을 해주세요.', ephemeral: true });
+        }
+    }
+
+    if (interaction.commandName == '낚싯바늘강화') {
+        let join = await joinCheck(interaction.user.id);
+        if (join) {
+            let userInfo = await getUserInfo(interaction.user.id);
+            let userItem = await getAllItem(interaction.user.id);
+            let upgradeMaterial = fishingHookUpgrade.find(hook => hook.레벨 == userInfo.fishingHook);
+            let maxLevel = fishingHookUpgrade[fishingHookUpgrade.length - 1].레벨;
+            if (upgradeMaterial.레벨 != maxLevel) {
+                if (userInfo.money < upgradeMaterial.가격) {
+                    await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
+                } else if (userItem.철조각 < upgradeMaterial.철조각) {
+                    await interaction.reply({ content: '철조각이 부족합니다.', ephemeral: true });
+                } else {
+                    db.run(`UPDATE user SET money = money - ${upgradeMaterial.가격}, fishingHook = fishingHook + 1 WHERE id = ?`, [interaction.user.id]);
+                    db.run(`UPDATE item SET 철조각 = 철조각 - ${upgradeMaterial.철조각} WHERE id = ?`, [interaction.user.id]);
+                    await interaction.reply(`${interaction.user.globalName}님이 낚싯바늘을 업그레이드 했습니다!\n**낚싯바늘 레벨  ${userInfo.fishingHook} => ${Number(userInfo.fishingHook) + 1}\n낚시 추가 물고기 +1** \n\n*철조각 -${NumberConversion(upgradeMaterial.철조각)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}*`);
+                }
+            } else {
+                await interaction.reply({ content: interaction.user.globalName + '님은 낚싯바늘은 현재 "최고레벨" 입니다.', ephemeral: true });
+            }
+        } else {
+            await interaction.reply({ content: '먼저 가입을 해주세요.', ephemeral: true });
+        }
+    }
+
+    if (interaction.commandName == '장갑강화') {
+        let join = await joinCheck(interaction.user.id);
+        if (join) {
+            let userInfo = await getUserInfo(interaction.user.id);
+            let userItem = await getAllItem(interaction.user.id);
+            let upgradeMaterial = govesUpgrade.find(goves => goves.레벨 == userInfo.govesLevel);
+            let maxLevel = govesUpgrade[govesUpgrade.length - 1].레벨;
+            if (upgradeMaterial.레벨 != maxLevel) {
+                if (userInfo.money < upgradeMaterial.가격) {
+                    await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
+                } else if (userItem.실 < upgradeMaterial.실) {
+                    await interaction.reply({ content: '실이 부족합니다.', ephemeral: true });
+                } else {
+                    db.run(`UPDATE user SET money = money - ${upgradeMaterial.가격}, govesLevel = govesLevel + 1 WHERE id = ?`, [interaction.user.id]);
+                    db.run(`UPDATE item SET 실 = 실 - ${upgradeMaterial.실} WHERE id = ?`, [interaction.user.id]);
+                    let upLevel = govesUpgrade.find(goves => goves.레벨 == (userInfo.govesLevel + 1));
+                    await interaction.reply(`${interaction.user.globalName}님이 장갑을 업그레이드 했습니다!\n**장갑 레벨  ${userInfo.govesLevel} => ${Number(userInfo.govesLevel) + 1}\n\n채집 소요시간 ${Number(upLevel.감소시간) / 1000}초 감소**\n*실 -${NumberConversion(upgradeMaterial.실)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}*`);
+                }
+            } else {
+                await interaction.reply({ content: interaction.user.globalName + '님은 장갑은 현재 "최고레벨" 입니다.', ephemeral: true });
+            }
+        } else {
+            await interaction.reply({ content: '먼저 가입을 해주세요.', ephemeral: true });
+        }
+    }
+
+    if (interaction.commandName == '곡괭이강화') {
+        let join = await joinCheck(interaction.user.id);
+        if (join) {
+            let userInfo = await getUserInfo(interaction.user.id);
+            let userItem = await getAllItem(interaction.user.id);
+            let upgradeMaterial = pickUpgrade.find(pick => pick.레벨 == userInfo.pickLevel);
+            let maxLevel = pickUpgrade[pickUpgrade.length - 1].레벨;
+            if (upgradeMaterial.레벨 != maxLevel) {
+                if (userInfo.money < upgradeMaterial.가격) {
+                    await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
+                } else if (userItem.철조각 < upgradeMaterial.철조각) {
+                    await interaction.reply({ content: '철조각이 부족합니다.', ephemeral: true });
+                } else {
+                    db.run(`UPDATE user SET money = money - ${upgradeMaterial.가격}, pickLevel = pickLevel + 1 WHERE id = ?`, [interaction.user.id]);
+                    db.run(`UPDATE item SET 철조각 = 철조각 - ${upgradeMaterial.철조각} WHERE id = ?`, [interaction.user.id]);
+                    let upLevel = pickUpgrade.find(pick => pick.레벨 == (userInfo.pickLevel + 1));
+                    await interaction.reply(`${interaction.user.globalName}님이 장갑을 업그레이드 했습니다!\n**장갑 레벨  ${userInfo.pickLevel} => ${Number(userInfo.pickLevel) + 1}\n\n채집 소요시간 ${Number(upLevel.감소시간) / 1000}초 감소**\n*철조각 -${NumberConversion(upgradeMaterial.철조각)}개\n돈 -${NumberConversion(upgradeMaterial.가격)}*`);
+                }
+            } else {
+                await interaction.reply({ content: interaction.user.globalName + '님은 장갑은 현재 "최고레벨" 입니다.', ephemeral: true });
             }
         } else {
             await interaction.reply({ content: '먼저 가입을 해주세요.', ephemeral: true });
