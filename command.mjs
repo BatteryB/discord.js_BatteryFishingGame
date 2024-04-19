@@ -2,6 +2,34 @@ import { REST, Routes } from 'discord.js';
 const CLIENT_ID = "CLIENT_ID";
 const TOKEN = "TOKEN";
 
+const itemList = [
+  {
+    name: '장갑 수리키트',
+    description: '장갑의 내구도를 100%로 수리합니다.',
+    value: '장갑 수리키트'
+  },
+  {
+    name: '곡괭이 수리키트',
+    description: '곡괭이의 내구도를 100%로 수리합니다.',
+    value: '곡괭이 수리키트'
+  },
+  {
+    name: '미끼',
+    description: '낚시 활동 시 10회 동안 물고기를 추가로 1마리 더 낚습니다',
+    value: '미끼'
+  },
+  {
+    name: '고급미끼',
+    description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚고, 낚시 소요시간이 5초 단축됩니다.',
+    value: '고급미끼'
+  },
+  {
+    name: '목장갑',
+    description: '채집이면 자원을 5개, 채광이면 3개씩 더 얻습니다.',
+    value: '목장갑'
+  }
+]
+
 const commands = [
   {
     name: '가격보기',
@@ -151,101 +179,6 @@ const commands = [
   {
     name: '일괄판매',
     description: '모든 물고기를 판매한다.',
-    options: [
-      {
-        name: '물고기',
-        description: "판매할 물고기를 선택하세요.",
-        type: 3,
-        required: true,
-        choices: [
-          {
-            name: '전체판매',
-            description: '가지고있는 모든 물고기를 판매합니다.',
-            value: '전체판매'
-          },
-          {
-            name: '붕어',
-            description: '물고기',
-            value: '붕어'
-          },
-          {
-            name: '송어',
-            description: '물고기',
-            value: '송어'
-          },
-          {
-            name: '잉어',
-            description: '물고기',
-            value: '잉어'
-          },
-          {
-            name: '명태',
-            description: '물고기',
-            value: '명태'
-          },
-          {
-            name: '연어',
-            description: '물고기',
-            value: '연어'
-          },
-          {
-            name: '장어',
-            description: '물고기',
-            value: '장어'
-          },
-          {
-            name: '해파리',
-            description: '물고기',
-            value: '해파리'
-          },
-          {
-            name: '광어',
-            description: '물고기',
-            value: '광어'
-          },
-          {
-            name: '오징어',
-            description: '물고기',
-            value: '오징어'
-          },
-          {
-            name: '베스',
-            description: '물고기',
-            value: '베스'
-          },
-          {
-            name: '우럭',
-            description: '물고기',
-            value: '우럭'
-          },
-          {
-            name: '고등어',
-            description: '물고기',
-            value: '고등어'
-          },
-          {
-            name: '넙치',
-            description: '물고기',
-            value: '넙치'
-          },
-          {
-            name: '청어',
-            description: '물고기',
-            value: '청어'
-          },
-          {
-            name: '새우',
-            description: '물고기',
-            value: '새우'
-          },
-          {
-            name: '청새치',
-            description: '물고기',
-            value: '청새치'
-          }
-        ]
-      }
-    ]
   },
   {
     name: '구매',
@@ -256,23 +189,7 @@ const commands = [
         description: '구입할 아이템을 골라주세요',
         type: 3,
         required: true,
-        choices: [
-          {
-            name: '장갑 수리키트',
-            description: '장갑의 내구도를 100%로 수리합니다.',
-            value: '장갑 수리키트'
-          },
-          {
-            name: '곡괭이 수리키트',
-            description: '곡괭이의 내구도를 100%로 수리합니다.',
-            value: '곡괭이 수리키트'
-          },
-          {
-            name: '미끼',
-            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
-            value: '미끼'
-          }
-        ]
+        choices: itemList
       },
       {
         name: '갯수',
@@ -288,32 +205,46 @@ const commands = [
     options: [
       {
         name: '아이템',
-        description: '사용할 아이템을 골라주세요',
+        description: '사용 할 아이템을 골라주세요',
         type: 3,
         required: true,
-        choices: [
-          {
-            name: '장갑 수리키트',
-            description: '장갑의 내구도를 100%로 수리합니다.',
-            value: '장갑 수리키트'
-          },
-          {
-            name: '곡괭이 수리키트',
-            description: '곡괭이의 내구도를 100%로 수리합니다.',
-            value: '곡괭이 수리키트'
-          },
-          {
-            name: '미끼',
-            description: '낚시 활동 시 10회 동안 물고기를 추가로 2마리 더 낚습니다',
-            value: '미끼'
-          }
-        ]
+        choices: itemList
       }
     ]
   },
   {
-    name: '낚싯대강화',
-    description: '낚싯대를 강화합니다.'
+    name: '강화',
+    description: '도구를 강화합니다.',
+    options: [
+      {
+        name: '도구',
+        description: '강화 할 아이템을 골라주세요',
+        type: 3,
+        required: true,
+        choices: [
+          {
+            name: '낚싯대강화',
+            description: '낚싯대를 강화합니다.',
+            value: '낚싯대강화'
+          },
+          {
+            name: '낚싯바늘강화',
+            description: '낚싯바늘를 강화합니다.',
+            value: '낚싯바늘강화'
+          },
+          {
+            name: '장갑강화',
+            description: '장갑을 강화합니다.',
+            value: '장갑강화'
+          },
+          {
+            name: '곡괭이강화',
+            description: '곡괭이를 강화합니다.',
+            value: '곡괭이강화'
+          }
+        ]
+      }
+    ]
   }
 ];
 
