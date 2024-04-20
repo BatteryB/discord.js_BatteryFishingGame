@@ -237,8 +237,6 @@ let pickUpgrade = [
 ]
 
 client.on('interactionCreate', async interaction => {
-    const developer = interaction.client.users.cache.get(developerId);
-
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === "가격보기") {
