@@ -1,10 +1,10 @@
 import { REST, Routes } from 'discord.js';
 import sqlite3 from 'sqlite3';
+
 const CLIENT_ID = "CLIENT_ID";
 const TOKEN = "TOKEN";
 
 const data = new sqlite3.Database('db/fishingData.db');
-
 
 let fishName = await fish();
 let fishObj;
@@ -28,6 +28,24 @@ for (let i = 0; i < itemName.length; i++) {
         value: itemName[i].itemName
     }
     itemList.push(itemObj)
+}
+
+let restName = await resting();
+let restObj;
+let restList = [
+    {
+        name: '쉬기',
+        description: '30초마다 피로도가 5씩 채워집니다, 피로도가 100이 되면 자동으로 해제됩니다.`',
+        value: '쉬기'
+    }
+];
+for (let i = 0; i < restName.length; i++) {
+    restObj = {
+        name: restName[i].restName,
+        description: '휴식',
+        value: restName[i].restName
+    }
+    restList.push(restObj)
 }
 
 const commands = [
@@ -60,7 +78,7 @@ const commands = [
                     {
                         name: '낚시',
                         description: '낚시 소요 시간: 5초 ~ 10초 || 1회당 1마리',
-                        value: 'fishingRod'
+                        value: 'fishingLine'
                     },
                     {
                         name: '채집',
@@ -135,7 +153,7 @@ const commands = [
                         description: '일괄판매',
                         value: 'D'
                     },
-                    
+
                 ]
             },
         ]
@@ -165,16 +183,12 @@ const commands = [
         options: [
             {
                 name: '아이템',
-                description: '사용 할 아이템을 골라주세요',
+                description: '사용 할 아이템을 골라주세요.',
                 type: 3,
                 required: true,
                 choices: itemList
             }
         ]
-    },
-    {
-        name: '자동사용',
-        description: '아이템을 자동으로 사용합니다. (자동으로 사용할 아이템을 먼저 수동으로 사용 해주세요.)'
     },
     {
         name: '강화',
@@ -187,9 +201,9 @@ const commands = [
                 required: true,
                 choices: [
                     {
-                        name: '낚싯대강화',
-                        description: '낚싯대를 강화합니다.',
-                        value: 'fishingRod'
+                        name: '낚싯줄강화',
+                        description: '낚싯줄을 강화합니다.',
+                        value: 'fishingLine'
                     },
                     {
                         name: '낚싯바늘강화',
@@ -213,12 +227,38 @@ const commands = [
     {
         name: '환생하기',
         description: '모든걸 잃고 처음으로 되돌아갑니다. 일부 스택은 유지됩니다.'
+    },
+    {
+        name: '휴식하기',
+        description: '휴식을 취하여 피로도를 회복합니다.',
+        options: [
+            {
+                name: '휴식',
+                description: '휴식 방식을 선택합니다.',
+                type: 3,
+                required: true,
+                choices: restList
+            }
+        ]
     }
 ];
 
-function fish() {
+
+async function fish() {
     return new Promise((resolve, reject) => {
-        data.all("SELECT * FROM fish ORDER BY CASE rank WHEN 'S' THEN 0 ELSE 1 END, rank ASC", (err, rows) => {
+        data.all("SELECT * FROM fish ORDER BY CASE rank WHEN 'S' THEN 0 ELSE 1 END, rank ASC", (err, row) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(row);
+            }
+        });
+    });
+}
+
+async function item() {
+    return new Promise((resolve, reject) => {
+        data.all('SELECT * FROM item', (err, rows) => {
             if (err) {
                 reject(err);
             } else {
@@ -228,9 +268,9 @@ function fish() {
     });
 }
 
-function item() {
+async function resting() {
     return new Promise((resolve, reject) => {
-        data.all('SELECT itemName FROM item', (err, rows) => {
+        data.all('SELECT * FROM rest', (err, rows) => {
             if (err) {
                 reject(err);
             } else {
