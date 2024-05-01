@@ -1,8 +1,8 @@
 import { REST, Routes } from 'discord.js';
 import sqlite3 from 'sqlite3';
 
-const CLIENT_ID = "CLIENT_ID";
-const TOKEN = "TOKEN";
+const CLIENT_ID = CLIENT_ID;
+const TOKEN = TOKEN;
 
 const data = new sqlite3.Database('db/fishingData.db');
 

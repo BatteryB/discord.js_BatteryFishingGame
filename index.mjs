@@ -5,7 +5,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const db = new sqlite3.Database('db/fIshingUser.db');
 const data = new sqlite3.Database('db/fishingData.db');
 
-const developerId = '706360632798085171';
+const developerId = 'ID';
 const TOKEN = "TOKEN";
 
 client.on('ready', () => {
@@ -40,7 +40,6 @@ client.on('interactionCreate', async interaction => {
             await db.run("INSERT INTO fish(id) VALUES(?)", [interaction.user.id]);
             await db.run("INSERT INTO item(id) VALUES(?)", [interaction.user.id]);
             await db.run("INSERT INTO ability(id) VALUES(?)", [interaction.user.id]);
-            await db.run("INSERT INTO whether(id) VALUES(?)", [interaction.user.id]);
             await interaction.reply({ content: "가입되었습니다.", ephemeral: true });
             return;
         } else {
@@ -49,17 +48,17 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    // if (interaction.isChatInputCommand()) { // 계정 정지 여부 (아직 사용 안함.)
-    //     let ban = await banCheck(interaction.user.id);
-    //     let banReason = await banCheck(interaction.user.id, 1)
-    //     if (ban) {
-    //         await interaction.reply({
-    //             content: `이용이 금지된 계정입니다.\n사유: ${banReason.사유}`,
-    //             ephemeral: true
-    //         })
-    //         return;
-    //     }
-    // }
+    if (interaction.isChatInputCommand()) { // 계정 정지 여부
+        let ban = await banCheck(interaction.user.id);
+        let banReason = await banCheck(interaction.user.id, 1)
+        if (ban) {
+            await interaction.reply({
+                content: `이용이 금지된 계정입니다.\n사유: ${banReason.사유}`,
+                ephemeral: true
+            })
+            return;
+        }
+    }
 
     if (interaction.commandName === "내정보") {
         let join = await joinCheck(interaction.user.id);
@@ -75,7 +74,7 @@ client.on('interactionCreate', async interaction => {
                 (userInfo.rebirth > 0 ? '\n환생 횟수: ' + userInfo.rebirth : '') +
                 '\n돈: ' + NumberConversion(userInfo.money) + '원' +
                 '\n\n== 피로도 ==' +
-                '\n' + `( ${userInfo.fatigue} / 100 ) ${userInfo.resting == 1 ? '**휴식중..**' : null}` +
+                '\n' + `( ${userInfo.fatigue} / 100 ) ${userInfo.resting == 1 ? '**휴식중..**' : ''}` +
                 '\n' + fatiguePrint +
                 '\n\n== 도구 정보 ==\n' +
                 '\n낚싯줄 레벨: ' + userInfo.fishingLine +
@@ -167,9 +166,22 @@ client.on('interactionCreate', async interaction => {
             let userAbility = await getUserAbility(interaction.user.id);
             let itemAbility = await item();
             if (userInfo.work == 0) {
-                if (userInfo.fatigue > 0) {
+                if (userInfo.fatigue > 3) {
                     let fatigueDamage = Math.floor(Math.random() * 7) + 4 // 피로도 4 ~ 10
                     userInfo.fatigue - fatigueDamage <= 0 ? fatigueDamage = userInfo.fatigue : null;
+                    let fatigueReply = '', fatigueEditReply = '';
+                    fatigueReply += `*피로도 -${fatigueDamage}*`
+                    for (let i = 0; i < itemAbility.length; i++) {
+                        if (itemAbility[i].fatigue == 1) {
+                            if (userAbility[itemAbility[i].itemName] > 0) {
+                                if (itemAbility[i].plusFatigue != 0) {
+                                    fatigueEditReply += `${itemAbility[i].itemName}: 피로도감소 -${itemAbility[i].plusFatigue}\n`
+                                    fatigueDamage -= itemAbility[i].plusFatigue;
+                                }
+                            }
+                        }
+                    }
+
                     if (work === 'fishingLine') { // 낚시
                         await db.run('UPDATE user SET work = 1 WHERE id = ?', [interaction.user.id]);
                         let hook = await toolUpgrade('fishingHook') // 낚싯바늘 데이터 불러오기
@@ -193,7 +205,7 @@ client.on('interactionCreate', async interaction => {
                         let fishingTime = fishingTimeObj.소요시간; // 해당 객체의 소요시간으로 지정
                         let catchingFish = catchingFishObj.물고기갯수 + (userInfo.rebirth * 2); // 해당 객체의 물고기갯수 + (환생횟수 * 2) 예) (환생 1회, 물고기갯수 = 2) = 물고기 4마리
                         let reply = interaction.user.globalName + '이(가) 낚싯대를 던졌다.\n물고기가 잡히길 기다리자...\n\n'
-                        let editReply = '**' + interaction.user.globalName + '이(가) ___' + pickFish.fishName + '___ 을(를) 낚았다!**\n\n' + `*피로도 -${fatigueDamage}*`;
+                        let editReply = '**' + interaction.user.globalName + '이(가) ___' + pickFish.fishName + '___ 을(를) 낚았다!**\n\n' + fatigueReply + '\n\n'
 
                         for (let i = 0; i < itemAbility.length; i++) {
                             if (itemAbility[i].fishing == 1) { // 해당 아이템이 낚시에서 사용되는 아이템이면
@@ -211,7 +223,7 @@ client.on('interactionCreate', async interaction => {
                                 }
                             }
                         }
-
+                        editReply += fatigueEditReply;
                         editReply += '\n';
                         for (let i = 0; i < itemAbility.length; i++) {
                             if (itemAbility[i].fishing == 1) {
@@ -256,7 +268,7 @@ client.on('interactionCreate', async interaction => {
                             let toolDamage = Number(Math.floor(Math.random() * 4) + 5); // 5~8
                             userInfo[work] < toolDamage ? toolDamage = userInfo[work] : null;
                             let reply = interaction.user.globalName + `은(는) 자원을 ${activityKrName}하기 위해 여정을 떠났다...`
-                            let editReply = `**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n*피로도 -${fatigueDamage}\n${itemName} +${totlaItem}\n${toolKrName} 내구도 -${toolDamage}%*\n\n`;
+                            let editReply = `**${interaction.user.globalName}이(가) 여정에서 돌아왔다.**\n\n${fatigueReply}\n*${itemName} +${totlaItem}\n${toolKrName} 내구도 -${toolDamage}%*\n\n`;
 
                             for (let i = 0; i < itemAbility.length; i++) { // 낚시랑 같은 알고리즘
                                 if (itemAbility[i][activityEnName] == 1) {
@@ -274,7 +286,7 @@ client.on('interactionCreate', async interaction => {
                                     }
                                 }
                             }
-
+                            editReply += fatigueEditReply;
                             editReply += '\n';
                             for (let i = 0; i < itemAbility.length; i++) {
                                 if (itemAbility[i][activityEnName] == 1) { // 해당 활동에 해당되는 아이템만
@@ -574,7 +586,7 @@ client.on('interactionCreate', async interaction => {
                         let restRate = setInterval(async () => {
                             userInfo = await getUserInfo(interaction.user.id);
                             if (userInfo.fatigue < 100) {
-                                let restCount = (userInfo.fatigue + 10) > 100 ? 100 - userInfo.fatigue : 10
+                                let restCount = (userInfo.fatigue + 5) > 100 ? 100 - userInfo.fatigue : 5
                                 await db.run(`UPDATE user SET fatigue = fatigue + ${restCount} WHERE id = ?`, [interaction.user.id]);
                             } else {
                                 interaction.user.send('휴식을 완료했습니다!');
@@ -582,7 +594,7 @@ client.on('interactionCreate', async interaction => {
                                 clearInterval(restRate);
                                 return;
                             }
-                        }, 30000);
+                        }, 5000);
                     } else {
                         interaction.reply({ content: '휴식을 취소했습니다.', ephemeral: true })
                         await db.run('UPDATE user SET resting = 0, work = 0 WHERE id = ?', [interaction.user.id]);
@@ -598,9 +610,9 @@ client.on('interactionCreate', async interaction => {
                         await setTimeout(() => {
                             db.run(`UPDATE user SET money = money - ${resting[0].price}, fatigue = ${query} WHERE id = ?`, [interaction.user.id]);
                             db.run('UPDATE user SET work = 0 WHERE id = ?', [interaction.user.id]);
-                            interaction.editReply(`**${interaction.user.globalName}님이 휴식을 끝마쳤습니다.\n${resting[0].description}\n\n피로도 +${resting[0].recoveryCount}\n-${resting[0].price}**`)
+                            interaction.editReply(`**${interaction.user.globalName}님이 휴식을 끝마쳤습니다.\n${resting[0].description}\n\n피로도 +${resting[0].recoveryCount}\n-${resting[0].price}원**`)
                             return;
-                        }, resting[0].time)
+                        }, resting[0].time) 
                     } else {
                         await interaction.reply({ content: '돈이 부족합니다.', ephemeral: true });
                         return;
