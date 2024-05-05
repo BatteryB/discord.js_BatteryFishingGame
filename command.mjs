@@ -1,8 +1,8 @@
 import { REST, Routes } from 'discord.js';
 import sqlite3 from 'sqlite3';
 
-const CLIENT_ID = CLIENT_ID;
-const TOKEN = TOKEN;
+const CLIENT_ID = "CLIENT_ID";
+const TOKEN = "TOKEN";
 
 const data = new sqlite3.Database('db/fishingData.db');
 
@@ -56,6 +56,10 @@ const commands = [
     {
         name: '가입하기',
         description: '낚시봇을 플레이하기 위해 가입을 먼저 해주세요!',
+    },
+    {
+        name: '출석',
+        description: '일일 출석체크를 합니다.'  
     },
     {
         name: '내정보',
@@ -225,10 +229,6 @@ const commands = [
         ]
     },
     {
-        name: '환생하기',
-        description: '모든걸 잃고 처음으로 되돌아갑니다. 일부 스택은 유지됩니다.'
-    },
-    {
         name: '휴식하기',
         description: '휴식을 취하여 피로도를 회복합니다.',
         options: [
@@ -240,7 +240,11 @@ const commands = [
                 choices: restList
             }
         ]
-    }
+    },
+    {
+        name: '환생하기',
+        description: '모든걸 잃고 처음으로 되돌아갑니다. 일부 스택은 유지됩니다.'
+    },
 ];
 
 
