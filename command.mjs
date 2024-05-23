@@ -6,28 +6,32 @@ const TOKEN = "TOKEN";
 
 const data = new sqlite3.Database('db/fishingData.db');
 
-let fishName = await fish();
-let fishObj;
-let fishList = [];
-for (let i = 0; i < fishName.length; i++) {
-    fishObj = {
-        name: fishName[i].fishName,
-        description: '물고기',
-        value: fishName[i].fishName
+let itemArr = await item();
+let itemObj;
+let itemActiveList = [], itemSaleList = [];
+for (let i = 0; i < itemArr.length; i++) {
+    if (itemArr[i].active) {
+        if (itemArr[i].sale) {
+            itemObj = {
+                name: itemArr[i].itemName,
+                description: '아이템',
+                value: itemArr[i].itemName
+            }
+            itemSaleList.push(itemObj)
+        }
+        itemActiveList.push(itemObj)
     }
-    fishList.push(fishObj)
 }
 
-let itemName = await item();
-let itemObj;
-let itemList = [];
-for (let i = 0; i < itemName.length; i++) {
-    itemObj = {
-        name: itemName[i].itemName,
-        description: '물고기',
-        value: itemName[i].itemName
+let makingArr = await making();
+let makingObj, makingList = [];
+for (let i = 0; i < makingArr.length; i++) {
+    makingObj = {
+        name: makingArr[i].itemName,
+        description: '제작',
+        value: makingArr[i].itemName
     }
-    itemList.push(itemObj)
+    makingList.push(makingObj)
 }
 
 let restName = await resting();
@@ -59,7 +63,7 @@ const commands = [
     },
     {
         name: '출석',
-        description: '일일 출석체크를 합니다.'  
+        description: '일일 출석체크를 합니다.'
     },
     {
         name: '내정보',
@@ -81,44 +85,31 @@ const commands = [
                 choices: [
                     {
                         name: '낚시',
-                        description: '낚시 소요 시간: 5초 ~ 10초 || 1회당 1마리',
+                        description: '활동',
                         value: 'fishingLine'
                     },
                     {
+                        name: '작살낚시',
+                        description: '활동',
+                        value: 'harpoon'
+                    },
+                    {
                         name: '채집',
-                        description: '채집 소요 시간: 10초 ~ 20초 || 장갑 파손정도: 7% ~ 10% || 1회당 아이템 1개 ~ 5개',
+                        description: '활동',
                         value: 'goves'
                     },
                     {
                         name: '채광',
-                        description: '채광 소요 시간: 30초 ~ 40초 || 곡괭이 파손정도: 3% ~ 5% || 1회당 아이템 1개 ~ 3개',
+                        description: '활동',
                         value: 'pick'
                     },
+
                 ]
             },
         ]
     },
     {
         name: '판매',
-        description: '물고기를 판매한다.',
-        options: [
-            {
-                name: '물고기',
-                description: "판매할 물고기를 선택하세요.",
-                type: 3,
-                required: true,
-                choices: fishList
-            },
-            {
-                name: '갯수',
-                description: '판매할 물고기의 갯수를 적어주세요',
-                type: 10,
-                required: true
-            }
-        ]
-    },
-    {
-        name: '일괄판매',
         description: '모든 물고기를 판매한다.',
         options: [
             {
@@ -171,13 +162,26 @@ const commands = [
                 description: '구입할 아이템을 골라주세요',
                 type: 3,
                 required: true,
-                choices: itemList
+                choices: itemSaleList
             },
             {
                 name: '갯수',
                 description: '구입할 아이템의 갯수를 적어주세요',
                 type: 10,
                 required: true
+            }
+        ]
+    },
+    {
+        name: '제작',
+        description: '아이템을 제작합니다.',
+        options: [
+            {
+                name: '아이템',
+                description: '제작할 아이템을 골라주세요',
+                type: 3,
+                required: true,
+                choices: makingList
             }
         ]
     },
@@ -190,7 +194,7 @@ const commands = [
                 description: '사용 할 아이템을 골라주세요.',
                 type: 3,
                 required: true,
-                choices: itemList
+                choices: itemActiveList
             }
         ]
     },
@@ -213,6 +217,11 @@ const commands = [
                         name: '낚싯바늘강화',
                         description: '낚싯바늘를 강화합니다.',
                         value: 'fishingHook'
+                    },
+                    {
+                        name: '작살강화',
+                        description: '작살을 강화합니다.',
+                        value: 'harpoon'
                     },
                     {
                         name: '장갑강화',
@@ -263,6 +272,18 @@ async function fish() {
 async function item() {
     return new Promise((resolve, reject) => {
         data.all('SELECT * FROM item', (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+async function making() {
+    return new Promise((resolve, reject) => {
+        data.all('SELECT * FROM making', (err, rows) => {
             if (err) {
                 reject(err);
             } else {
