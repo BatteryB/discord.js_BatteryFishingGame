@@ -51,7 +51,7 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
-        if (interaction.isChatInputCommand()) { // 계정 정지 여부 (아직 사용 안함.)
+        if (interaction.isChatInputCommand()) {
             let ban = await banCheck(interaction.user.id);
             let banReason = await banCheck(interaction.user.id, 1)
             if (ban) {
